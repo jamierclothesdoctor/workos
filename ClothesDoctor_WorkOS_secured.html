@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work OS — Clothes Doctor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --surface3: #2e2e2e;
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.15);
+    --text: #f0ede8;
+    --text-2: #9a9590;
+    --text-3: #5a5550;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --accent-dim2: rgba(200,169,110,0.06);
+    --green: #4caf7d;
+    --green-dim: rgba(76,175,125,0.12);
+    --red: #e05c5c;
+    --red-dim: rgba(224,92,92,0.1);
+    --blue: #5b9bd5;
+    --blue-dim: rgba(91,155,213,0.12);
+    --purple: #9b7fc4;
+    --purple-dim: rgba(155,127,196,0.12);
+    --teal: #4db8a4;
+    --teal-dim: rgba(77,184,164,0.12);
+    --radius: 10px;
+    --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 12px; }
+
+  .logo {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #0f0f0f;
+    letter-spacing: -0.5px; flex-shrink: 0;
+  }
+
+  .header-title { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+  .header-sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); margin-top: 1px; }
+
+  .time-display { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); text-align: right; }
+  .time-big { font-size: 18px; font-weight: 600; color: var(--text-2); letter-spacing: -0.5px; display: block; }
+
+  .mode-bar {
+    display: flex; gap: 6px; padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .mode-bar::-webkit-scrollbar { display: none; }
+
+  .mode-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-2); font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    font-family: var(--font);
+  }
+  .mode-pill:hover { border-color: var(--border-bright); color: var(--text); }
+  .mode-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .mode-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+  .main { display: grid; grid-template-columns: 1fr 280px; gap: 0; min-height: calc(100vh - 110px); }
+  .feed { border-right: 1px solid var(--border); padding: 20px 24px; overflow-y: auto; }
+  .sidebar { padding: 20px 20px; overflow-y: auto; }
+
+  .section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .briefing-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+
+  .briefing-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+  }
+
+  .briefing-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+
+  .briefing-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .badge-morning { background: rgba(200,169,110,0.15); color: var(--accent); }
+  .badge-midday  { background: rgba(91,155,213,0.15);  color: var(--blue); }
+  .badge-evening { background: rgba(155,127,196,0.15); color: var(--purple); }
+
+  .run-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; background: var(--accent-dim);
+    border: 1px solid rgba(200,169,110,0.3); border-radius: 6px;
+    color: var(--accent); font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: var(--font);
+  }
+  .run-btn:hover { background: rgba(200,169,110,0.2); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .briefing-body { padding: 16px; min-height: 120px; }
+  .briefing-output { font-size: 13px; line-height: 1.65; color: var(--text-2); white-space: pre-wrap; }
+
+  .briefing-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100px; gap: 8px; color: var(--text-3);
+  }
+  .briefing-empty-icon { font-size: 24px; opacity: 0.4; }
+  .briefing-empty-text { font-size: 12px; }
+
+  .loading-dots { display: flex; gap: 4px; align-items: center; justify-content: center; padding: 20px; }
+  .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  .priority-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .priority-item:hover { border-color: var(--border-bright); }
+  .priority-item.done { opacity: 0.4; }
+  .priority-item.done .priority-text { text-decoration: line-through; }
+
+  .priority-rank { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); min-width: 16px; margin-top: 2px; }
+  .priority-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .dot-urgent { background: var(--red); }
+  .dot-high   { background: var(--accent); }
+  .dot-medium { background: var(--blue); }
+  .dot-low    { background: var(--text-3); }
+
+  .priority-content { flex: 1; }
+  .priority-text { font-size: 13px; color: var(--text); font-weight: 500; }
+  .priority-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .priority-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 500; margin-left: 6px; }
+  .tag-ops      { background: var(--teal-dim); color: var(--teal); }
+  .tag-finance  { background: var(--green-dim); color: var(--green); }
+  .tag-comms    { background: var(--blue-dim); color: var(--blue); }
+  .tag-strategy { background: var(--purple-dim); color: var(--purple); }
+
+  .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+
+  .agent-card {
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; transition: all 0.15s; background: var(--surface); position: relative; overflow: hidden;
+  }
+  .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.15s; }
+  .agent-card:hover::before { opacity: 1; }
+  .agent-card:hover { border-color: var(--border-bright); }
+  .agent-card.active::before { opacity: 1; }
+
+  .agent-ops::before      { background: var(--teal); }
+  .agent-finance::before  { background: var(--green); }
+  .agent-comms::before    { background: var(--blue); }
+  .agent-strategy::before { background: var(--purple); }
+
+  .agent-card.active.agent-ops      { background: var(--teal-dim); border-color: var(--teal); }
+  .agent-card.active.agent-finance  { background: var(--green-dim); border-color: var(--green); }
+  .agent-card.active.agent-comms    { background: var(--blue-dim); border-color: var(--blue); }
+  .agent-card.active.agent-strategy { background: var(--purple-dim); border-color: var(--purple); }
+
+  .agent-icon { font-size: 18px; margin-bottom: 6px; }
+  .agent-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .agent-desc { font-size: 10px; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
+
+  .loop-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px; margin-bottom: 4px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 12px; color: var(--text-2); cursor: pointer; transition: all 0.15s;
+  }
+  .loop-item:hover { border-color: var(--border-bright); color: var(--text); }
+  .loop-age { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+  .loop-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; opacity: 0.6; }
+
+  .config-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
+  .config-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .config-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; color: var(--text);
+    font-size: 11px; font-family: var(--font-mono); outline: none;
+    transition: border-color 0.15s; margin-bottom: 6px;
+  }
+  .config-input:focus { border-color: var(--accent); }
+  .config-input::placeholder { color: var(--text-3); }
+
+  .config-status { font-size: 10px; display: flex; align-items: center; gap: 4px; }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .status-ok   { background: var(--green); }
+  .status-err  { background: var(--red); }
+  .status-idle { background: var(--text-3); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+  .chat-bar {
+    display: flex; gap: 8px; padding: 14px 24px;
+    border-top: 1px solid var(--border); background: var(--bg);
+    position: sticky; bottom: 0;
+  }
+
+  .chat-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; color: var(--text);
+    font-size: 13px; font-family: var(--font); outline: none; transition: border-color 0.15s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--text-3); }
+
+  .send-btn {
+    padding: 9px 16px; background: var(--accent); border: none; border-radius: 8px;
+    color: #0f0f0f; font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s; font-family: var(--font); white-space: nowrap;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .active-agent-bar {
+    display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--text-3);
+  }
+  .active-agent-name { font-weight: 600; font-size: 11px; }
+  .clear-agent { margin-left: auto; cursor: pointer; opacity: 0.5; font-size: 10px; transition: opacity 0.15s; }
+  .clear-agent:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="auth-screen" style="position:fixed;inset:0;background:#0f0f0f;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,sans-serif">
+<div style="width:320px;padding:32px;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-align:center">
+<div style="width:36px;height:36px;background:#c8a96e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#0f0f0f;margin:0 auto 20px;letter-spacing:-0.5px">CD</div>
+<div style="font-size:15px;font-weight:600;color:#f0ede8;margin-bottom:6px">Work OS</div>
+<div style="font-size:12px;color:#5a5550;margin-bottom:24px">Clothes Doctor · Jamie</div>
+<input id="pw-input" type="password" placeholder="Password" autofocus onkeydown="if(event.key==='Enter')checkPw()" style="width:100%;background:#242424;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;color:#f0ede8;font-size:13px;font-family:inherit;outline:none;margin-bottom:10px;box-sizing:border-box"/>
+<div id="pw-error" style="font-size:11px;color:#e05c5c;margin-bottom:10px;min-height:16px"></div>
+<button onclick="checkPw()" style="width:100%;background:#c8a96e;border:none;border-radius:8px;padding:10px;color:#0f0f0f;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Unlock</button>
+</div>
+</div>
+<script>
+async function checkPw(){
+  const pw=document.getElementById("pw-input").value;
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
+  const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  if(hex==="74dc32d01266339c925d98732055001b30b778cc9337b56a637601282690ed50"){
+    document.getElementById("auth-screen").style.display="none";
+    sessionStorage.setItem("wo_auth","1");
+  } else {
+    document.getElementById("pw-error").textContent="Incorrect password";
+    document.getElementById("pw-input").value="";
+    document.getElementById("pw-input").focus();
+  }
+}
+if(sessionStorage.getItem("wo_auth")==="1"){document.getElementById("auth-screen").style.display="none";}
+</script>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">CD</div>
+    <div>
+      <div class="header-title">Work OS</div>
+      <div class="header-sub">Clothes Doctor · Jamie</div>
+    </div>
+  </div>
+  <div class="time-display">
+    <span class="time-big" id="clock">--:--</span>
+    <span id="date-display"></span>
+  </div>
+</div>
+
+<div class="mode-bar">
+  <button class="mode-pill active" onclick="setMode('morning')" id="pill-morning"><span class="mode-dot"></span> Morning brief</button>
+  <button class="mode-pill" onclick="setMode('midday')" id="pill-midday"><span class="mode-dot"></span> Mid-day check</button>
+  <button class="mode-pill" onclick="setMode('evening')" id="pill-evening"><span class="mode-dot"></span> End of day</button>
+  <button class="mode-pill" onclick="setMode('priorities')" id="pill-priorities"><span class="mode-dot"></span> Priorities</button>
+  <button class="mode-pill" onclick="setMode('agents')" id="pill-agents"><span class="mode-dot"></span> Agents</button>
+  <button class="mode-pill" onclick="setMode('config')" id="pill-config"><span class="mode-dot"></span> Settings</button>
+</div>
+
+<div class="main">
+  <div class="feed" id="feed"></div>
+  <div class="sidebar" id="sidebar"></div>
+</div>
+
+<div id="agent-bar" style="display:none" class="active-agent-bar">
+  <span style="color:var(--text-2)">Agent mode:</span>
+  <span class="active-agent-name" id="agent-bar-name"></span>
+  <span class="clear-agent" onclick="clearAgent()">✕ clear</span>
+</div>
+
+<div class="chat-bar">
+  <input class="chat-input" id="chat-input" placeholder="Ask your Work OS anything…" onkeydown="handleKey(event)"/>
+  <button class="send-btn" id="send-btn" onclick="sendChat()">Send ↗</button>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are the Work OS for Jamie, who works at Clothes Doctor — a clothing care product brand.
+
+Jamie's role spans: ops & logistics (3PL, suppliers, freight), commercial (pricing, deals), finance & board reporting, and customer/reputation management. He context-switches constantly and has rough priorities but no real system. His biggest risk is being reactive rather than strategic.
+
+TONE: Be direct and challenging. Don't soften things. Name what he's avoiding. Force a priority order and defend it. No preambles, no vague encouragement, no generic advice. Keep responses tight and actionable.
+
+KEY CONTEXT:
+- 3PL relationship under active renegotiation
+- Freight costs are always a pressure
+- China supplier diversification in progress
+- Board packs drafted regularly
+- TrustPilot actively managed
+- EMI option scheme HMRC returns are a recurring obligation`;
+
+const AGENT_PROMPTS = {
+  ops:      'You are in OPS AGENT mode. Think like a COO. Focus on execution, supplier leverage, logistics efficiency, cost. Ask: what is the bottleneck, what is the risk, what is the dependency? Be operational and precise.',
+  finance:  'You are in FINANCE AGENT mode. Think like a CFO. Focus on numbers, board-level clarity, risk flags, cash position. Do not soften bad news. Translate operational decisions into financial impact.',
+  comms:    'You are in COMMS AGENT mode. Think like a communications director. Every word counts. Consider tone, audience, subtext, and what is not being said. Draft with intent, not just accuracy.',
+  strategy: 'You are in STRATEGY AGENT mode. Think like a trusted board advisor. Zoom out. Challenge assumptions. Ask whether Jamie is solving the right problem. Be direct, not diplomatic.'
+};
+
+const BRIEFING_PROMPTS = {
+  morning: `Generate a morning briefing for Jamie. Today is ${new Date().toDateString()}. Structure it with these exact headers:\n\n🔴 URGENT THREADS\nWhat needs action today — ranked ruthlessly. Max 5 items.\n\n📅 CALENDAR PREP\nKey meetings today with one-line prep each.\n\n⚠️ THE THING YOU'RE AVOIDING\nName one specific thing Jamie is most likely procrastinating on. Be direct.\n\n🔁 OPEN LOOPS\nUnresolved items carrying over that need to stay on radar.\n\nBe tight. No padding.`,
+  midday:  `Generate a mid-day check-in for Jamie. Time: ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}. Structure:\n\n✅ ON TRACK?\nHonest read on progress against this morning's priorities. Don't be kind if off track.\n\n🔥 NEW FIRES\nAnything that's landed since 8am that changes the picture.\n\n🎯 AFTERNOON PRIORITY\nOne clear recommendation. What to focus on right now.\n\nStraight to the point.`,
+  evening: `Generate an end of day wrap for Jamie. Date: ${new Date().toDateString()}. Structure:\n\n📋 WHAT GOT DONE\nHonest summary of meaningful output today.\n\n⏳ WHAT DIDN'T\nOpen loops carrying into tomorrow. Flag anything now urgent by waiting.\n\n🌅 TOMORROW'S HEADLINE\nThe single most important thing waiting in the morning. One sentence.\n\nDon't pad it out.`
+};
+
+let state = {
+  mode: 'morning',
+  apiKey: localStorage.getItem('wo_api_key') || '',
+  activeAgent: null,
+  briefings: { morning: '', midday: '', evening: '' },
+  loadingBriefing: false,
+  priorities: [
+    { id:1, text:'3PL renegotiation — prep position before next call', meta:'No deadline set', tag:'ops', urgency:'urgent', done:false },
+    { id:2, text:'Board pack draft — numbers section outstanding', meta:'Due end of week', tag:'finance', urgency:'high', done:false },
+    { id:3, text:'China supplier shortlist — decision pending', meta:'Blocking diversification', tag:'ops', urgency:'high', done:false },
+    { id:4, text:'TrustPilot response — Tough Love Stain Remover', meta:'Review from 3 days ago', tag:'comms', urgency:'medium', done:false },
+    { id:5, text:'EMI scheme HMRC return — check deadline', meta:'Recurring obligation', tag:'finance', urgency:'medium', done:false },
+  ],
+  loops: [
+    { text:'BoxMart stock call-off arrangement', age:'5d' },
+    { text:'Cornwall warehouse clearance update', age:'3d' },
+    { text:'Smiths News vs Delta rate comparison', age:'2d' },
+    { text:'Freight cost projection for board pack', age:'1d' },
+  ],
+  chatHistory: []
+};
+
+function saveKey(val) {
+  state.apiKey = val.trim();
+  try { localStorage.setItem('wo_api_key', state.apiKey); } catch(e) {}
+  renderSidebar();
+}
+
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('pill-' + m)?.classList.add('active');
+  renderFeed();
+  renderSidebar();
+}
+
+function setAgent(type) {
+  state.activeAgent = state.activeAgent === type ? null : type;
+  renderFeed(); renderSidebar();
+  const bar = document.getElementById('agent-bar');
+  const names = { ops:'Ops agent', finance:'Finance agent', comms:'Comms agent', strategy:'Strategy agent' };
+  if (state.activeAgent) {
+    bar.style.display = 'flex';
+    document.getElementById('agent-bar-name').textContent = names[state.activeAgent];
+  } else { bar.style.display = 'none'; }
+}
+
+function clearAgent() {
+  state.activeAgent = null;
+  document.getElementById('agent-bar').style.display = 'none';
+  renderSidebar();
+}
+
+function togglePriority(id) {
+  const item = state.priorities.find(p => p.id === id);
+  if (item) { item.done = !item.done; renderFeed(); }
+}
+
+function getUrgencyDot(u) {
+  return { urgent:'dot-urgent', high:'dot-high', medium:'dot-medium', low:'dot-low' }[u] || 'dot-low';
+}
+
+function getTagClass(t) {
+  return { ops:'tag-ops', finance:'tag-finance', comms:'tag-comms', strategy:'tag-strategy' }[t] || '';
+}
+
+async function runBriefing(type) {
+  if (!state.apiKey) { alert('Add your Anthropic API key in Settings first.'); setMode('config'); return; }
+  state.loadingBriefing = true; renderFeed();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: BRIEFING_PROMPTS[type] }] })
+    });
+    const data = await resp.json();
+    state.briefings[type] = data.content?.[0]?.text || ('⚠️ Error: ' + (data.error?.message || JSON.stringify(data)));
+  } catch(e) { state.briefings[type] = '⚠️ Connection error: ' + e.message; }
+  state.loadingBriefing = false; renderFeed();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!state.apiKey) { alert('Add your API key in Settings first.'); setMode('config'); return; }
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+  const agentExtra = state.activeAgent ? '\n\n' + AGENT_PROMPTS[state.activeAgent] : '';
+  state.chatHistory.push({ role: 'user', content: text });
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, system: SYSTEM_PROMPT + agentExtra, messages: state.chatHistory.map(m => ({ role: m.role, content: m.content })) })
+    });
+    const data = await resp.json();
+    state.chatHistory.push({ role: 'assistant', content: data.content?.[0]?.text || ('Error: ' + JSON.stringify(data.error)) });
+  } catch(e) { state.chatHistory.push({ role: 'assistant', content: '⚠️ Error: ' + e.message }); }
+  document.getElementById('send-btn').disabled = false;
+  renderFeed();
+  setTimeout(() => input.focus(), 50);
+}
+
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderBriefingCard(type) {
+  const labels  = { morning:'Morning brief', midday:'Mid-day check', evening:'End of day' };
+  const badges  = { morning:'badge-morning', midday:'badge-midday', evening:'badge-evening' };
+  const icons   = { morning:'🌅', midday:'☀️', evening:'🌙' };
+  const times   = { morning:'8:00 AM', midday:'1:00 PM', evening:'6:00 PM' };
+  const content = state.briefings[type];
+  let bodyHtml;
+  if (state.loadingBriefing) {
+    bodyHtml = `<div class="loading-dots"><span></span><span></span><span></span></div>`;
+  } else if (content) {
+    bodyHtml = `<div class="briefing-output">${escHtml(content)}</div>`;
+  } else {
+    bodyHtml = `<div class="briefing-empty"><div class="briefing-empty-icon">${icons[type]}</div><div class="briefing-empty-text">Run briefing to load</div></div>`;
+  }
+  return `<div class="briefing-card">
+    <div class="briefing-header">
+      <div class="briefing-title">${icons[type]} ${labels[type]}<span class="briefing-badge ${badges[type]}">${times[type]}</span></div>
+      <button class="run-btn" onclick="runBriefing('${type}')" ${state.loadingBriefing?'disabled':''}>${content?'↺ Refresh':'▶ Run'}</button>
+    </div>
+    <div class="briefing-body">${bodyHtml}</div>
+  </div>`;
+}
+
+function renderChatHistory() {
+  if (!state.chatHistory.length) return `<div class="briefing-empty" style="min-height:80px"><div class="briefing-empty-text" style="color:var(--text-3);font-size:12px">Ask anything — or activate an agent above for specialist mode</div></div>`;
+  return state.chatHistory.map(m => `
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${m.role==='user'?'var(--accent)':'var(--text-3)'};margin-bottom:4px">${m.role==='user'?'You':'Work OS'}</div>
+      <div style="font-size:13px;line-height:1.65;color:${m.role==='user'?'var(--text)':'var(--text-2)'};white-space:pre-wrap">${escHtml(m.content)}</div>
+    </div>`).join('<div style="height:1px;background:var(--border);margin:12px 0"></div>');
+}
+
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  if (['morning','midday','evening'].includes(state.mode)) {
+    feed.innerHTML = `<div class="section-label" style="margin-bottom:16px">Briefing</div>${renderBriefingCard(state.mode)}<div class="section-label" style="margin-top:20px;margin-bottom:12px">Chat</div><div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+    feed.scrollTop = feed.scrollHeight;
+  } else if (state.mode === 'priorities') {
+    const sorted = [...state.priorities].sort((a,b) => {
+      const r = {urgent:0,high:1,medium:2,low:3};
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return (r[a.urgency]||3) - (r[b.urgency]||3);
+    });
+    feed.innerHTML = `<div class="section-label">Priority stack</div>${sorted.map((p,i) => `
+      <div class="priority-item ${p.done?'done':''}" onclick="togglePriority(${p.id})">
+        <span class="priority-rank">${String(i+1).padStart(2,'0')}</span>
+        <span class="priority-dot ${getUrgencyDot(p.urgency)}"></span>
+        <div class="priority-content">
+          <div class="priority-text">${escHtml(p.text)}<span class="priority-tag ${getTagClass(p.tag)}">${p.tag}</span></div>
+          <div class="priority-meta">${escHtml(p.meta)}</div>
+        </div>
+      </div>`).join('')}<div class="section-label" style="margin-top:20px">Chat</div><div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+  } else if (state.mode === 'agents') {
+    const agents = [
+      { key:'ops',      label:'Ops agent',      icon:'⚙️', desc:'Suppliers · 3PL · freight · execution', cls:'agent-ops' },
+      { key:'finance',  label:'Finance agent',  icon:'📊', desc:'Board pack · cashflow · risk flags',    cls:'agent-finance' },
+      { key:'comms',    label:'Comms agent',    icon:'✉️', desc:'Email · Slack · reputation · tone',     cls:'agent-comms' },
+      { key:'strategy', label:'Strategy agent', icon:'🎯', desc:'Thinking partner · challenge assumptions', cls:'agent-strategy' },
+    ];
+    feed.innerHTML = `<div class="section-label">Agent modes</div><div class="agent-grid">${agents.map(a => `
+      <div class="agent-card ${a.cls} ${state.activeAgent===a.key?'active':''}" onclick="setAgent('${a.key}')">
+        <div class="agent-icon">${a.icon}</div>
+        <div class="agent-name">${a.label}</div>
+        <div class="agent-desc">${a.desc}</div>
+      </div>`).join('')}</div><div class="section-label" style="margin-top:4px">Chat ${state.activeAgent?'· '+state.activeAgent+' mode active':''}</div><div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+  } else if (state.mode === 'config') {
+    const hasKey = !!state.apiKey;
+    feed.innerHTML = `<div class="section-label">Settings</div>
+      <div class="config-section">
+        <div class="config-label">Anthropic API key</div>
+        <input class="config-input" type="password" placeholder="sk-ant-..." id="key-input"
+          onfocus="this.value='';this.type='text'"
+          onblur="this.type='password'"
+          onchange="saveKey(this.value)"/>
+        <div class="config-status">
+          <span class="status-dot ${hasKey?'status-ok':'status-idle'}"></span>
+          <span style="font-size:10px;color:var(--text-3)">${hasKey?'Key saved · calls go to claude-sonnet-4-6':'No key set — enter above to enable live briefings'}</span>
+        </div>
+      </div>
+      <div class="config-section">
+        <div class="config-label">Schedule</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.7">
+          Morning brief at <strong style="color:var(--accent)">08:00</strong> · Mid-day at <strong style="color:var(--blue)">13:00</strong> · Evening wrap at <strong style="color:var(--purple)">18:00</strong><br>
+          <span style="color:var(--text-3)">Managed by your Google Apps Script scheduler. Run <code style="font-family:var(--font-mono);font-size:10px;background:var(--surface2);padding:1px 5px;border-radius:3px">pauseAll()</code> to pause.</span>
+        </div>
+      </div>
+      <div class="config-section">
+        <div class="config-label">System</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.8">Work OS v1.0 · claude-sonnet-4-6<br><span style="color:var(--text-3)">Open this file in any browser. Your API key is saved locally in this browser only.</span></div>
+      </div>`;
+  }
+}
+
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let agentSection = '';
+  if (state.mode === 'agents' || state.activeAgent) {
+    const hints = {
+      ops:      ['3PL leverage position','Freight cost breakdown','China supplier status','Stock risk assessment'],
+      finance:  ['Board pack status','Cash position','Cost vs budget','EMI scheme deadline'],
+      comms:    ['Draft supplier email','TrustPilot response','Board comms','Stakeholder update'],
+      strategy: ['Priority challenge','Biggest blocker','Decision framework','Risk vs opportunity']
+    };
+    const active = state.activeAgent || 'ops';
+    agentSection = `<div class="section-label">Quick prompts</div>${(hints[active]||[]).map(h => `
+      <div class="loop-item" onclick="quickPrompt('${h}')">
+        <span class="loop-dot" style="background:var(--blue)"></span>${h}
+      </div>`).join('')}<div style="height:16px"></div>`;
+  }
+  sidebar.innerHTML = `${agentSection}
+    <div class="section-label">Open loops</div>
+    ${state.loops.map(l => `
+      <div class="loop-item" onclick="quickPrompt('Update on: ${l.text}')">
+        <span class="loop-dot"></span>${escHtml(l.text)}<span class="loop-age">${l.age}</span>
+      </div>`).join('')}
+    <div style="height:16px"></div>
+    <div class="section-label">Top priorities</div>
+    ${state.priorities.filter(p=>!p.done).slice(0,3).map(p => `
+      <div class="loop-item" onclick="quickPrompt('Help me action: ${p.text}')">
+        <span class="priority-dot ${getUrgencyDot(p.urgency)}" style="width:5px;height:5px;flex-shrink:0"></span>
+        <span style="font-size:11px">${escHtml(p.text)}</span>
+      </div>`).join('')}`;
+}
+
+function quickPrompt(text) {
+  document.getElementById('chat-input').value = text;
+  document.getElementById('chat-input').focus();
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('date-display').textContent = now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+}
+
+function autoMode() {
+  const h = new Date().getHours();
+  if (h < 12) setMode('morning');
+  else if (h < 17) setMode('midday');
+  else setMode('evening');
+}
+
+updateClock();
+setInterval(updateClock, 10000);
+autoMode();
+renderFeed();
+renderSidebar();
+</script>
+</body>
+</html>
