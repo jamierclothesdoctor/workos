@@ -276,7 +276,7 @@ async function checkPw(){
   const pw=document.getElementById("pw-input").value;
   const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
   const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-  if(hex==="74dc32d01266339c925d98732055001b30b778cc9337b56a637601282690ed50"){
+  if(hex==="3fb81a945cd97bd31fba7ece9292b5415d91a8663cb812ba84da1a2f241edd32"){
     document.getElementById("auth-screen").style.display="none";
     sessionStorage.setItem("wo_auth","1");
   } else {
