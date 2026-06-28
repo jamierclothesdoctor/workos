@@ -493,7 +493,7 @@ function savePriorities() {
 
 let state = {
   mode: 'morning',
-  apiKey: localStorage.getItem('wo_api_key') || '',
+  apiKey: 'via-cloudflare-worker',
   activeAgent: null,
   briefings: { morning:'', midday:'', evening:'' },
   loadingBriefing: false,
@@ -587,10 +587,10 @@ function toggleFullForm() {
 
 // ── BRIEFINGS ──
 async function runBriefing(type) {
-  if (!state.apiKey) { alert('Add your API key in Settings first.'); setMode('config'); return; }
+  // API key handled by Cloudflare Worker
   state.loadingBriefing = true; renderFeed();
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://work-os-relay.jamie-937.workers.dev', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-api-key':state.apiKey, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system:SYSTEM_PROMPT, messages:[{role:'user',content:BRIEFING_PROMPTS[type]}] })
@@ -606,13 +606,13 @@ async function sendChat() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text) return;
-  if (!state.apiKey) { alert('Add your API key in Settings first.'); setMode('config'); return; }
+  // API key handled by Cloudflare Worker
   input.value = '';
   document.getElementById('send-btn').disabled = true;
   state.chatHistory.push({role:'user',content:text});
   const system = SYSTEM_PROMPT + (state.activeAgent ? '\n\n'+AGENT_PROMPTS[state.activeAgent] : '');
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://work-os-relay.jamie-937.workers.dev', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-api-key':state.apiKey, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system, messages:state.chatHistory })
@@ -627,7 +627,7 @@ async function sendChat() {
 
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
 function quickPrompt(t) { document.getElementById('chat-input').value=t; document.getElementById('chat-input').focus(); }
-function saveKey(v) { state.apiKey=v.trim(); try{localStorage.setItem('wo_api_key',state.apiKey);}catch(e){} renderSidebar(); }
+function saveKey(v) { /* key stored in Cloudflare Worker */ }
 
 // ── HELPERS ──
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -760,15 +760,12 @@ function renderFeed() {
     feed.innerHTML = `
       <div class="section-label">Settings</div>
       <div class="config-section">
-        <div class="config-label">Anthropic API key</div>
-        <input class="config-input" type="password" placeholder="sk-ant-..."
-          onfocus="this.value='';this.type='text'"
-          onblur="this.type='password'"
-          onchange="saveKey(this.value)"/>
-        <div class="config-status">
-          <span class="status-dot ${hasKey?'status-ok':'status-idle'}"></span>
-          <span style="font-size:10px;color:var(--text-3)">${hasKey?'Key saved · claude-sonnet-4-6':'No key set — enter above'}</span>
+        <div class="config-label">Anthropic API</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span class="status-dot status-ok"></span>
+          <span style="font-size:12px;color:var(--text-2)">Connected via Cloudflare Worker</span>
         </div>
+        <div style="font-size:11px;color:var(--text-3);line-height:1.6">Your API key is stored securely in your Cloudflare Worker — not in this file. Model: claude-sonnet-4-6</div>
       </div>
       <div class="config-section">
         <div class="config-label">Schedule</div>
@@ -784,7 +781,7 @@ function renderFeed() {
       </div>
       <div class="config-section">
         <div class="config-label">System</div>
-        <div style="font-size:12px;color:var(--text-2)">Work OS v1.1 · claude-sonnet-4-6</div>
+        <div style="font-size:12px;color:var(--text-2)">Work OS v1.2 · claude-sonnet-4-6 · Cloudflare relay</div>
       </div>`;
   }
 }
