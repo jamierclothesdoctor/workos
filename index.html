@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work OS — Clothes Doctor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --surface3: #2e2e2e;
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.15);
+    --text: #f0ede8;
+    --text-2: #9a9590;
+    --text-3: #5a5550;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --green: #4caf7d;
+    --green-dim: rgba(76,175,125,0.12);
+    --red: #e05c5c;
+    --red-dim: rgba(224,92,92,0.1);
+    --blue: #5b9bd5;
+    --blue-dim: rgba(91,155,213,0.12);
+    --purple: #9b7fc4;
+    --purple-dim: rgba(155,127,196,0.12);
+    --teal: #4db8a4;
+    --teal-dim: rgba(77,184,164,0.12);
+    --radius: 10px;
+    --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', monospace;
+    --sidebar-width: 280px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── AUTH ── */
+  #auth-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+  }
+  .auth-box {
+    width: 320px; padding: 32px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; text-align: center;
+  }
+  .auth-logo {
+    width: 36px; height: 36px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #0f0f0f;
+    margin: 0 auto 20px; letter-spacing: -0.5px;
+  }
+  .auth-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .auth-sub { font-size: 12px; color: var(--text-3); margin-bottom: 24px; }
+  .auth-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-size: 13px; font-family: var(--font); outline: none;
+    margin-bottom: 10px; transition: border-color 0.15s;
+  }
+  .auth-input:focus { border-color: var(--accent); }
+  .auth-error { font-size: 11px; color: var(--red); margin-bottom: 10px; min-height: 16px; }
+  .auth-btn {
+    width: 100%; background: var(--accent); border: none; border-radius: 8px;
+    padding: 10px; color: #0f0f0f; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: var(--font);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 28px; height: 28px; background: var(--accent); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #0f0f0f; flex-shrink: 0;
+  }
+  .header-title { font-size: 14px; font-weight: 600; }
+  .header-sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .time-display { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); text-align: right; }
+  .time-big { font-size: 17px; font-weight: 600; color: var(--text-2); display: block; }
+
+  /* sidebar toggle button — mobile only */
+  .sidebar-toggle {
+    display: none; background: transparent; border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; color: var(--text-2);
+    cursor: pointer; font-size: 16px; line-height: 1;
+  }
+
+  /* ── MODE BAR ── */
+  .mode-bar {
+    display: flex; gap: 6px; padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .mode-bar::-webkit-scrollbar { display: none; }
+  .mode-pill {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: var(--font);
+  }
+  .mode-pill:hover { border-color: var(--border-bright); color: var(--text); }
+  .mode-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .mode-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr var(--sidebar-width);
+    min-height: calc(100vh - 108px);
+    position: relative;
+  }
+  .feed { border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    padding: 18px 16px; overflow-y: auto;
+    transition: transform 0.25s ease;
+  }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── BRIEFING ── */
+  .briefing-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .briefing-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .briefing-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .briefing-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .badge-morning { background: rgba(200,169,110,0.15); color: var(--accent); }
+  .badge-midday  { background: rgba(91,155,213,0.15);  color: var(--blue); }
+  .badge-evening { background: rgba(155,127,196,0.15); color: var(--purple); }
+  .run-btn {
+    display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+    background: var(--accent-dim); border: 1px solid rgba(200,169,110,0.3);
+    border-radius: 6px; color: var(--accent); font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: background 0.15s;
+  }
+  .run-btn:hover { background: rgba(200,169,110,0.2); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .briefing-body { padding: 14px; min-height: 100px; }
+  .briefing-output { font-size: 13px; line-height: 1.65; color: var(--text-2); white-space: pre-wrap; }
+  .briefing-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90px; gap: 6px; color: var(--text-3); }
+  .briefing-empty-icon { font-size: 22px; opacity: 0.4; }
+  .briefing-empty-text { font-size: 12px; }
+  .loading-dots { display: flex; gap: 4px; align-items: center; justify-content: center; padding: 20px; }
+  .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+  /* ── PRIORITY STACK ── */
+  .priority-add-bar {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .quick-add-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; color: var(--text);
+    font-size: 13px; font-family: var(--font); outline: none; transition: border-color 0.15s;
+  }
+  .quick-add-input:focus { border-color: var(--accent); }
+  .quick-add-input::placeholder { color: var(--text-3); }
+  .quick-add-btn {
+    padding: 8px 14px; background: var(--accent-dim); border: 1px solid rgba(200,169,110,0.3);
+    border-radius: 8px; color: var(--accent); font-size:13px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); white-space: nowrap;
+  }
+  .quick-add-btn:hover { background: rgba(200,169,110,0.2); }
+
+  .full-form {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+    display: none;
+  }
+  .full-form.open { display: block; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .form-input, .form-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; color: var(--text);
+    font-size: 12px; font-family: var(--font); outline: none; transition: border-color 0.15s;
+    width: 100%;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+  .form-input::placeholder { color: var(--text-3); }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .form-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); border: 1px solid var(--border);
+    background: transparent; color: var(--text-2); transition: all 0.15s;
+  }
+  .form-btn:hover { border-color: var(--border-bright); color: var(--text); }
+  .form-btn.primary { background: var(--accent); border-color: var(--accent); color: #0f0f0f; }
+  .form-btn.primary:hover { opacity: 0.85; }
+  .toggle-form-btn {
+    padding: 8px 14px; background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-3); font-size: 12px;
+    cursor: pointer; font-family: var(--font); transition: all 0.15s; white-space: nowrap;
+  }
+  .toggle-form-btn:hover { border-color: var(--border-bright); color: var(--text-2); }
+
+  .priority-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 6px; transition: border-color 0.15s;
+  }
+  .priority-item:hover { border-color: var(--border-bright); }
+  .priority-item.done { opacity: 0.4; }
+  .priority-item.done .priority-text { text-decoration: line-through; }
+  .priority-rank { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); min-width: 16px; margin-top: 3px; }
+  .priority-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .dot-urgent { background: var(--red); }
+  .dot-high   { background: var(--accent); }
+  .dot-medium { background: var(--blue); }
+  .dot-low    { background: var(--text-3); }
+  .priority-content { flex: 1; min-width: 0; }
+  .priority-text { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-word; }
+  .priority-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .priority-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 500; margin-left: 6px; }
+  .tag-ops      { background: var(--teal-dim); color: var(--teal); }
+  .tag-finance  { background: var(--green-dim); color: var(--green); }
+  .tag-comms    { background: var(--blue-dim); color: var(--blue); }
+  .tag-strategy { background: var(--purple-dim); color: var(--purple); }
+  .priority-actions { display: flex; gap: 6px; flex-shrink: 0; margin-top: 2px; }
+  .p-action-btn {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-3); font-size: 13px; padding: 2px 4px;
+    border-radius: 4px; transition: all 0.15s; line-height: 1;
+  }
+  .p-action-btn:hover { color: var(--text); background: var(--surface2); }
+
+  /* ── AGENTS ── */
+  .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .agent-card {
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; transition: all 0.15s; background: var(--surface); position: relative; overflow: hidden;
+  }
+  .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.15s; }
+  .agent-card:hover::before, .agent-card.active::before { opacity: 1; }
+  .agent-card:hover { border-color: var(--border-bright); }
+  .agent-ops::before      { background: var(--teal); }
+  .agent-finance::before  { background: var(--green); }
+  .agent-comms::before    { background: var(--blue); }
+  .agent-strategy::before { background: var(--purple); }
+  .agent-card.active.agent-ops      { background: var(--teal-dim); border-color: var(--teal); }
+  .agent-card.active.agent-finance  { background: var(--green-dim); border-color: var(--green); }
+  .agent-card.active.agent-comms    { background: var(--blue-dim); border-color: var(--blue); }
+  .agent-card.active.agent-strategy { background: var(--purple-dim); border-color: var(--purple); }
+  .agent-icon { font-size: 18px; margin-bottom: 6px; }
+  .agent-name { font-size: 12px; font-weight: 600; }
+  .agent-desc { font-size: 10px; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
+
+  /* ── SIDEBAR ITEMS ── */
+  .loop-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    border-radius: 6px; margin-bottom: 4px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 12px; color: var(--text-2);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .loop-item:hover { border-color: var(--border-bright); color: var(--text); }
+  .loop-age { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+  .loop-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; opacity: 0.6; }
+
+  /* ── CONFIG ── */
+  .config-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+  .config-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .config-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; color: var(--text);
+    font-size: 11px; font-family: var(--font-mono); outline: none;
+    transition: border-color 0.15s; margin-bottom: 6px;
+  }
+  .config-input:focus { border-color: var(--accent); }
+  .config-input::placeholder { color: var(--text-3); }
+  .config-status { font-size: 10px; display: flex; align-items: center; gap: 4px; }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .status-ok   { background: var(--green); }
+  .status-idle { background: var(--text-3); }
+
+  /* ── AGENT BAR ── */
+  .active-agent-bar {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    background: var(--surface); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-3);
+  }
+  .active-agent-name { font-weight: 600; }
+  .clear-agent { margin-left: auto; cursor: pointer; opacity: 0.5; font-size: 10px; transition: opacity 0.15s; }
+  .clear-agent:hover { opacity: 1; }
+
+  /* ── CHAT ── */
+  .chat-bar { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg); position: sticky; bottom: 0; }
+  .chat-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; color: var(--text);
+    font-size: 13px; font-family: var(--font); outline: none; transition: border-color 0.15s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--text-3); }
+  .send-btn {
+    padding: 9px 16px; background: var(--accent); border: none; border-radius: 8px;
+    color: #0f0f0f; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: var(--font); white-space: nowrap; transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; }
+    .feed { border-right: none; padding: 14px; }
+    .sidebar {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(var(--sidebar-width), 85vw);
+      background: var(--bg); border-left: 1px solid var(--border);
+      z-index: 200; transform: translateX(100%);
+      padding: 60px 16px 16px;
+      overflow-y: auto;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 199;
+    }
+    .sidebar-overlay.open { display: block; }
+    .sidebar-close {
+      position: absolute; top: 16px; right: 16px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-2); padding: 4px 8px;
+      cursor: pointer; font-size: 14px;
+    }
+    .agent-grid { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .time-big { font-size: 14px; }
+    .header-sub { display: none; }
+    .mode-bar { padding: 8px 14px; }
+    .chat-bar { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">CD</div>
+    <div class="auth-title">Work OS</div>
+    <div class="auth-sub">Clothes Doctor · Jamie</div>
+    <input id="pw-input" class="auth-input" type="password" placeholder="Password" autofocus onkeydown="if(event.key==='Enter')checkPw()"/>
+    <div id="pw-error" class="auth-error"></div>
+    <button class="auth-btn" onclick="checkPw()">Unlock</button>
+  </div>
+</div>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">CD</div>
+    <div>
+      <div class="header-title">Work OS</div>
+      <div class="header-sub">Clothes Doctor · Jamie</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="time-display">
+      <span class="time-big" id="clock">--:--</span>
+      <span id="date-display"></span>
+    </div>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+  </div>
+</div>
+
+<div class="mode-bar">
+  <button class="mode-pill active" onclick="setMode('morning')" id="pill-morning"><span class="mode-dot"></span>Morning brief</button>
+  <button class="mode-pill" onclick="setMode('midday')" id="pill-midday"><span class="mode-dot"></span>Mid-day check</button>
+  <button class="mode-pill" onclick="setMode('evening')" id="pill-evening"><span class="mode-dot"></span>End of day</button>
+  <button class="mode-pill" onclick="setMode('priorities')" id="pill-priorities"><span class="mode-dot"></span>Priorities</button>
+  <button class="mode-pill" onclick="setMode('agents')" id="pill-agents"><span class="mode-dot"></span>Agents</button>
+  <button class="mode-pill" onclick="setMode('config')" id="pill-config"><span class="mode-dot"></span>Settings</button>
+</div>
+
+<div class="layout">
+  <div class="feed" id="feed"></div>
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+    <div id="sidebar-content"></div>
+  </div>
+</div>
+
+<div id="agent-bar" style="display:none" class="active-agent-bar">
+  <span>Agent mode:</span>
+  <span class="active-agent-name" id="agent-bar-name"></span>
+  <span class="clear-agent" onclick="clearAgent()">✕ clear</span>
+</div>
+
+<div class="chat-bar">
+  <input class="chat-input" id="chat-input" placeholder="Ask your Work OS anything…" onkeydown="handleKey(event)"/>
+  <button class="send-btn" id="send-btn" onclick="sendChat()">Send ↗</button>
+</div>
+
+<script>
+const HASH = '3fb81a945cd97bd31fba7ece9292b5415d91a8663cb812ba84da1a2f241edd32';
+
+async function checkPw() {
+  const pw = document.getElementById('pw-input').value;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  if (hex === HASH) {
+    document.getElementById('auth-screen').style.display = 'none';
+    sessionStorage.setItem('wo_auth','1');
+  } else {
+    document.getElementById('pw-error').textContent = 'Incorrect password';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+if (sessionStorage.getItem('wo_auth') === '1') {
+  document.getElementById('auth-screen').style.display = 'none';
+}
+
+const SYSTEM_PROMPT = `You are the Work OS for Jamie, who works at Clothes Doctor — a clothing care product brand.
+
+Jamie's role spans: ops & logistics (3PL, suppliers, freight), commercial (pricing, deals), finance & board reporting, and customer/reputation management. He context-switches constantly and has rough priorities but no real system. His biggest risk is being reactive rather than strategic.
+
+TONE: Be direct and challenging. Don't soften things. Name what he's avoiding. Force a priority order and defend it. No preambles, no vague encouragement, no generic advice. Keep responses tight and actionable.
+
+KEY CONTEXT:
+- 3PL relationship under active renegotiation
+- Freight costs are always a pressure
+- China supplier diversification in progress
+- Board packs drafted regularly
+- TrustPilot actively managed
+- EMI option scheme HMRC returns are a recurring obligation`;
+
+const AGENT_PROMPTS = {
+  ops:      'OPS AGENT mode: Think like a COO. Focus on execution, supplier leverage, logistics efficiency, cost. What is the bottleneck, risk, dependency?',
+  finance:  'FINANCE AGENT mode: Think like a CFO. Numbers, board-level clarity, risk flags, cash position. Do not soften bad news.',
+  comms:    'COMMS AGENT mode: Think like a communications director. Every word counts. Consider tone, audience, subtext. Draft with intent.',
+  strategy: 'STRATEGY AGENT mode: Think like a board advisor. Zoom out. Challenge assumptions. Is Jamie solving the right problem?'
+};
+
+const BRIEFING_PROMPTS = {
+  morning: `Morning briefing for Jamie — ${new Date().toDateString()}.\n\n🔴 URGENT THREADS — ranked ruthlessly, max 5\n📅 CALENDAR PREP — each meeting, one-line prep\n⚠️ THE THING YOU'RE AVOIDING — name it directly\n🔁 OPEN LOOPS — unresolved items on radar\n\nTight. No padding.`,
+  midday:  `Mid-day check-in — ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}.\n\n✅ ON TRACK? — honest read, don't be kind\n🔥 NEW FIRES — anything since 8am\n🎯 AFTERNOON PRIORITY — one clear recommendation\n\nStraight to the point.`,
+  evening: `End of day — ${new Date().toDateString()}.\n\n📋 WHAT GOT DONE — honest summary\n⏳ WHAT DIDN'T — open loops, flag urgent ones\n🌅 TOMORROW'S HEADLINE — one sentence\n\nNo padding.`
+};
+
+function defaultPriorities() {
+  return [
+    { id:1, text:'3PL renegotiation — prep position before next call', meta:'No deadline set', tag:'ops', urgency:'urgent', done:false },
+    { id:2, text:'Board pack draft — numbers section outstanding', meta:'Due end of week', tag:'finance', urgency:'high', done:false },
+    { id:3, text:'China supplier shortlist — decision pending', meta:'Blocking diversification', tag:'ops', urgency:'high', done:false },
+    { id:4, text:'TrustPilot response — Tough Love Stain Remover', meta:'Review from 3 days ago', tag:'comms', urgency:'medium', done:false },
+    { id:5, text:'EMI scheme HMRC return — check deadline', meta:'Recurring obligation', tag:'finance', urgency:'medium', done:false },
+  ];
+}
+
+function loadPriorities() {
+  try {
+    const saved = localStorage.getItem('wo_priorities');
+    return saved ? JSON.parse(saved) : defaultPriorities();
+  } catch(e) { return defaultPriorities(); }
+}
+
+function savePriorities() {
+  try { localStorage.setItem('wo_priorities', JSON.stringify(state.priorities)); } catch(e) {}
+}
+
+let state = {
+  mode: 'morning',
+  apiKey: 'via-cloudflare-worker',
+  activeAgent: null,
+  briefings: { morning:'', midday:'', evening:'' },
+  loadingBriefing: false,
+  priorities: loadPriorities(),
+  nextId: 100,
+  showFullForm: false,
+  loops: [
+    { text:'BoxMart stock call-off arrangement', age:'5d' },
+    { text:'Cornwall warehouse clearance update', age:'3d' },
+    { text:'Smiths News vs Delta rate comparison', age:'2d' },
+    { text:'Freight cost projection for board pack', age:'1d' },
+  ],
+  chatHistory: []
+};
+
+// ── SIDEBAR ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ── MODE ──
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('pill-'+m)?.classList.add('active');
+  renderFeed(); renderSidebar();
+}
+
+// ── AGENTS ──
+function setAgent(type) {
+  state.activeAgent = state.activeAgent === type ? null : type;
+  const names = { ops:'Ops agent', finance:'Finance agent', comms:'Comms agent', strategy:'Strategy agent' };
+  const bar = document.getElementById('agent-bar');
+  if (state.activeAgent) {
+    bar.style.display = 'flex';
+    document.getElementById('agent-bar-name').textContent = names[state.activeAgent];
+  } else { bar.style.display = 'none'; }
+  renderFeed(); renderSidebar();
+}
+function clearAgent() {
+  state.activeAgent = null;
+  document.getElementById('agent-bar').style.display = 'none';
+  renderFeed(); renderSidebar();
+}
+
+// ── PRIORITIES ──
+function getUrgencyDot(u) { return {urgent:'dot-urgent',high:'dot-high',medium:'dot-medium',low:'dot-low'}[u]||'dot-low'; }
+function getTagClass(t)    { return {ops:'tag-ops',finance:'tag-finance',comms:'tag-comms',strategy:'tag-strategy'}[t]||''; }
+function getUrgencyRank(u) { return {urgent:0,high:1,medium:2,low:3}[u]||3; }
+
+function toggleDone(id) {
+  const p = state.priorities.find(x=>x.id===id);
+  if (p) { p.done = !p.done; savePriorities(); renderFeed(); }
+}
+
+function deleteTask(id) {
+  state.priorities = state.priorities.filter(x=>x.id!==id);
+  savePriorities(); renderFeed();
+}
+
+function quickAdd() {
+  const input = document.getElementById('quick-add-input');
+  const text = input.value.trim();
+  if (!text) return;
+  state.priorities.push({ id: state.nextId++, text, meta:'', tag:'ops', urgency:'medium', done:false });
+  savePriorities(); input.value = ''; renderFeed();
+}
+
+function submitFullForm() {
+  const text     = document.getElementById('f-text').value.trim();
+  const meta     = document.getElementById('f-meta').value.trim();
+  const tag      = document.getElementById('f-tag').value;
+  const urgency  = document.getElementById('f-urgency').value;
+  if (!text) return;
+  state.priorities.push({ id: state.nextId++, text, meta, tag, urgency, done:false });
+  savePriorities();
+  state.showFullForm = false;
+  renderFeed();
+}
+
+function toggleFullForm() {
+  state.showFullForm = !state.showFullForm;
+  renderFeed();
+  if (state.showFullForm) setTimeout(()=>document.getElementById('f-text')?.focus(),50);
+}
+
+// ── BRIEFINGS ──
+async function runBriefing(type) {
+  // API key handled by Cloudflare Worker
+  state.loadingBriefing = true; renderFeed();
+  try {
+    const resp = await fetch('https://work-os-relay.jamie-937.workers.dev', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':state.apiKey, 'anthropic-version':'2023-06-01' },
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system:SYSTEM_PROMPT, messages:[{role:'user',content:BRIEFING_PROMPTS[type]}] })
+    });
+    const data = await resp.json();
+    state.briefings[type] = data.content?.[0]?.text || ('⚠️ '+JSON.stringify(data.error));
+  } catch(e) { state.briefings[type] = '⚠️ Error: '+e.message; }
+  state.loadingBriefing = false; renderFeed();
+}
+
+// ── CHAT ──
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  // API key handled by Cloudflare Worker
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+  state.chatHistory.push({role:'user',content:text});
+  const system = SYSTEM_PROMPT + (state.activeAgent ? '\n\n'+AGENT_PROMPTS[state.activeAgent] : '');
+  try {
+    const resp = await fetch('https://work-os-relay.jamie-937.workers.dev', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':state.apiKey, 'anthropic-version':'2023-06-01' },
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system, messages:state.chatHistory })
+    });
+    const data = await resp.json();
+    state.chatHistory.push({role:'assistant', content:data.content?.[0]?.text||'Error: '+JSON.stringify(data.error)});
+  } catch(e) { state.chatHistory.push({role:'assistant',content:'⚠️ '+e.message}); }
+  document.getElementById('send-btn').disabled = false;
+  renderFeed();
+  setTimeout(()=>input.focus(),50);
+}
+
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
+function quickPrompt(t) { document.getElementById('chat-input').value=t; document.getElementById('chat-input').focus(); }
+function saveKey(v) { /* key stored in Cloudflare Worker */ }
+
+// ── HELPERS ──
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderBriefingCard(type) {
+  const labels = {morning:'Morning brief',midday:'Mid-day check',evening:'End of day'};
+  const badges = {morning:'badge-morning',midday:'badge-midday',evening:'badge-evening'};
+  const icons  = {morning:'🌅',midday:'☀️',evening:'🌙'};
+  const times  = {morning:'8:00 AM',midday:'1:00 PM',evening:'6:00 PM'};
+  const content = state.briefings[type];
+  let body;
+  if (state.loadingBriefing) {
+    body = `<div class="loading-dots"><span></span><span></span><span></span></div>`;
+  } else if (content) {
+    body = `<div class="briefing-output">${esc(content)}</div>`;
+  } else {
+    body = `<div class="briefing-empty"><div class="briefing-empty-icon">${icons[type]}</div><div class="briefing-empty-text">Run briefing to load</div></div>`;
+  }
+  return `<div class="briefing-card">
+    <div class="briefing-header">
+      <div class="briefing-title">${icons[type]} ${labels[type]}<span class="briefing-badge ${badges[type]}">${times[type]}</span></div>
+      <button class="run-btn" onclick="runBriefing('${type}')" ${state.loadingBriefing?'disabled':''}>${content?'↺ Refresh':'▶ Run'}</button>
+    </div>
+    <div class="briefing-body">${body}</div>
+  </div>`;
+}
+
+function renderChatHistory() {
+  if (!state.chatHistory.length) return `<div class="briefing-empty" style="min-height:60px"><div class="briefing-empty-text" style="font-size:12px;color:var(--text-3)">Ask anything — or activate an agent for specialist mode</div></div>`;
+  return state.chatHistory.map(m=>`
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${m.role==='user'?'var(--accent)':'var(--text-3)'};margin-bottom:3px">${m.role==='user'?'You':'Work OS'}</div>
+      <div style="font-size:13px;line-height:1.65;color:${m.role==='user'?'var(--text)':'var(--text-2)'};white-space:pre-wrap">${esc(m.content)}</div>
+    </div>`).join('<div style="height:1px;background:var(--border);margin:10px 0"></div>');
+}
+
+function renderPriorityStack() {
+  const sorted = [...state.priorities].sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return getUrgencyRank(a.urgency)-getUrgencyRank(b.urgency);
+  });
+  const formHtml = state.showFullForm ? `
+    <div class="full-form open">
+      <div class="form-row">
+        <input class="form-input" id="f-text" placeholder="Task description" style="grid-column:1/-1"/>
+      </div>
+      <div class="form-row">
+        <input class="form-input" id="f-meta" placeholder="Note / deadline (optional)"/>
+        <select class="form-select" id="f-tag">
+          <option value="ops">Ops</option>
+          <option value="finance">Finance</option>
+          <option value="comms">Comms</option>
+          <option value="strategy">Strategy</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <select class="form-select" id="f-urgency">
+          <option value="urgent">🔴 Urgent</option>
+          <option value="high">🟡 High</option>
+          <option value="medium" selected>🔵 Medium</option>
+          <option value="low">⚪ Low</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button class="form-btn" onclick="toggleFullForm()">Cancel</button>
+        <button class="form-btn primary" onclick="submitFullForm()">Add task</button>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="priority-add-bar">
+      <input class="quick-add-input" id="quick-add-input" placeholder="Quick add task…" onkeydown="if(event.key==='Enter')quickAdd()"/>
+      <button class="quick-add-btn" onclick="quickAdd()">+ Add</button>
+      <button class="toggle-form-btn" onclick="toggleFullForm()">${state.showFullForm?'✕':'⊞ Full form'}</button>
+    </div>
+    ${formHtml}
+    ${sorted.map((p,i)=>`
+      <div class="priority-item ${p.done?'done':''}">
+        <span class="priority-rank">${String(i+1).padStart(2,'0')}</span>
+        <span class="priority-dot ${getUrgencyDot(p.urgency)}"></span>
+        <div class="priority-content">
+          <div class="priority-text">${esc(p.text)}<span class="priority-tag ${getTagClass(p.tag)}">${p.tag}</span></div>
+          ${p.meta?`<div class="priority-meta">${esc(p.meta)}</div>`:''}
+        </div>
+        <div class="priority-actions">
+          <button class="p-action-btn" onclick="toggleDone(${p.id})" title="${p.done?'Undo':'Done'}">${p.done?'↩':'✓'}</button>
+          <button class="p-action-btn" onclick="quickPrompt('Help me action: ${esc(p.text)}')" title="Ask Work OS">↗</button>
+          <button class="p-action-btn" onclick="deleteTask(${p.id})" title="Delete">✕</button>
+        </div>
+      </div>`).join('')}`;
+}
+
+// ── RENDER FEED ──
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  if (['morning','midday','evening'].includes(state.mode)) {
+    feed.innerHTML = `
+      <div class="section-label" style="margin-bottom:14px">Briefing</div>
+      ${renderBriefingCard(state.mode)}
+      <div class="section-label" style="margin-top:18px;margin-bottom:10px">Chat</div>
+      <div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+    feed.scrollTop = feed.scrollHeight;
+  } else if (state.mode === 'priorities') {
+    feed.innerHTML = `
+      <div class="section-label">Priority stack</div>
+      ${renderPriorityStack()}
+      <div class="section-label" style="margin-top:18px;margin-bottom:10px">Chat</div>
+      <div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+  } else if (state.mode === 'agents') {
+    const agents = [
+      {key:'ops',      label:'Ops agent',      icon:'⚙️', desc:'Suppliers · 3PL · freight · execution', cls:'agent-ops'},
+      {key:'finance',  label:'Finance agent',  icon:'📊', desc:'Board pack · cashflow · risk flags',    cls:'agent-finance'},
+      {key:'comms',    label:'Comms agent',    icon:'✉️', desc:'Email · Slack · reputation · tone',     cls:'agent-comms'},
+      {key:'strategy', label:'Strategy agent', icon:'🎯', desc:'Thinking partner · challenge assumptions', cls:'agent-strategy'},
+    ];
+    feed.innerHTML = `
+      <div class="section-label">Agent modes</div>
+      <div class="agent-grid">
+        ${agents.map(a=>`
+          <div class="agent-card ${a.cls} ${state.activeAgent===a.key?'active':''}" onclick="setAgent('${a.key}')">
+            <div class="agent-icon">${a.icon}</div>
+            <div class="agent-name">${a.label}</div>
+            <div class="agent-desc">${a.desc}</div>
+          </div>`).join('')}
+      </div>
+      <div class="section-label" style="margin-top:4px;margin-bottom:10px">Chat ${state.activeAgent?'· '+state.activeAgent+' mode active':''}</div>
+      <div style="margin-bottom:12px">${renderChatHistory()}</div>`;
+  } else if (state.mode === 'config') {
+    const hasKey = !!state.apiKey;
+    feed.innerHTML = `
+      <div class="section-label">Settings</div>
+      <div class="config-section">
+        <div class="config-label">Anthropic API</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span class="status-dot status-ok"></span>
+          <span style="font-size:12px;color:var(--text-2)">Connected via Cloudflare Worker</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);line-height:1.6">Your API key is stored securely in your Cloudflare Worker — not in this file. Model: claude-sonnet-4-6</div>
+      </div>
+      <div class="config-section">
+        <div class="config-label">Schedule</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.8">
+          Morning <strong style="color:var(--accent)">08:00</strong> · Mid-day <strong style="color:var(--blue)">13:00</strong> · Evening <strong style="color:var(--purple)">18:00</strong><br>
+          <span style="color:var(--text-3)">Managed by Google Apps Script. Run <code style="font-family:var(--font-mono);font-size:10px;background:var(--surface2);padding:1px 5px;border-radius:3px">pauseAll()</code> to pause.</span>
+        </div>
+      </div>
+      <div class="config-section">
+        <div class="config-label">Data</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.8;margin-bottom:10px">Priority stack is saved in your browser. API key is saved locally.</div>
+        <button class="form-btn" onclick="if(confirm('Reset priorities to defaults?')){localStorage.removeItem('wo_priorities');state.priorities=defaultPriorities();renderFeed();}">Reset priorities to defaults</button>
+      </div>
+      <div class="config-section">
+        <div class="config-label">System</div>
+        <div style="font-size:12px;color:var(--text-2)">Work OS v1.2 · claude-sonnet-4-6 · Cloudflare relay</div>
+      </div>`;
+  }
+}
+
+// ── RENDER SIDEBAR ──
+function renderSidebar() {
+  const hints = {
+    ops:      ['3PL leverage position','Freight cost breakdown','China supplier status','Stock risk assessment'],
+    finance:  ['Board pack status','Cash position','Cost vs budget','EMI scheme deadline'],
+    comms:    ['Draft supplier email','TrustPilot response','Board comms','Stakeholder update'],
+    strategy: ['Priority challenge','Biggest blocker','Decision framework','Risk vs opportunity']
+  };
+  const active = state.activeAgent;
+  let agentSection = '';
+  if (state.mode === 'agents' || active) {
+    const key = active || 'ops';
+    agentSection = `<div class="section-label">Quick prompts</div>
+      ${(hints[key]||[]).map(h=>`<div class="loop-item" onclick="quickPrompt('${h}');closeSidebar()"><span class="loop-dot" style="background:var(--blue)"></span>${h}</div>`).join('')}
+      <div style="height:14px"></div>`;
+  }
+  const topTasks = state.priorities.filter(p=>!p.done).slice(0,3);
+  document.getElementById('sidebar-content').innerHTML = `
+    ${agentSection}
+    <div class="section-label">Open loops</div>
+    ${state.loops.map(l=>`
+      <div class="loop-item" onclick="quickPrompt('Update on: ${l.text}');closeSidebar()">
+        <span class="loop-dot"></span>${esc(l.text)}<span class="loop-age">${l.age}</span>
+      </div>`).join('')}
+    <div style="height:14px"></div>
+    <div class="section-label">Top priorities</div>
+    ${topTasks.length ? topTasks.map(p=>`
+      <div class="loop-item" onclick="quickPrompt('Help me action: ${esc(p.text)}');closeSidebar()">
+        <span class="priority-dot ${getUrgencyDot(p.urgency)}" style="width:5px;height:5px;flex-shrink:0"></span>
+        <span style="font-size:11px">${esc(p.text)}</span>
+      </div>`).join('') : `<div style="font-size:11px;color:var(--text-3);padding:4px 0">All done ✓</div>`}`;
+}
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('date-display').textContent = now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+
+function autoMode() {
+  const h = new Date().getHours();
+  if (h < 12) setMode('morning');
+  else if (h < 17) setMode('midday');
+  else setMode('evening');
+}
+
+updateClock();
+setInterval(updateClock, 10000);
+autoMode();
+renderFeed();
+renderSidebar();
+</script>
+</body>
+</html>
